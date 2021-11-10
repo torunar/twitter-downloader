@@ -1,0 +1,31 @@
+{
+    "name": "torunar/twitter-downloader",
+    "description": "Downloads media from Twitter account",
+    "type": "project",
+    "require": {
+        "symfony/console": "^5.3",
+        "php": ">=7.4",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.4",
+        "abraham/twitteroauth": "^3.1"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mike Schekotov",
+            "email": "torunar@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Torunar\\TwitterDownloader\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/twitter-downloader"
+    ],
+    "config": {
+        "bin-dir": "bin"
+    }
+}

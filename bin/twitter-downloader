@@ -1,0 +1,15 @@
+#!/usr/bin/env php
+<?php
+
+use Symfony\Component\Console\Application;
+use Torunar\TwitterDownloader\Infrastructure\DownloadCommand;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$app = new Application();
+$cmd = new DownloadCommand();
+$app->addCommands([$cmd]);
+$app->setDefaultCommand($cmd->getName(), true);
+
+$exitCode = $app->run();
+exit($exitCode);

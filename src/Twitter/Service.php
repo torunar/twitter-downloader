@@ -125,12 +125,12 @@ class Service
 
     private function getPhotos(stdClass $tweetData)
     {
-        if (!isset($tweetData->entities->media)) {
+        if (!isset($tweetData->extended_entities->media)) {
             return [];
         }
 
         $photos = [];
-        foreach ($tweetData->entities->media as $mediaEntity) {
+        foreach ($tweetData->extended_entities->media as $mediaEntity) {
             if ($mediaEntity->type !== 'photo') {
                 continue;
             }

@@ -42,6 +42,13 @@ class DownloadCommand extends Command
             '/tmp/twitter-downloader/'
         );
         $this->addOption(
+            'id',
+            'i',
+            InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+            'Tweet ID' . PHP_EOL . '<info>E.g.: 1460373093533511680</info>',
+            []
+        );
+        $this->addOption(
             'media-type',
             'm',
             InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
@@ -68,7 +75,11 @@ class DownloadCommand extends Command
 
         $maxId = null;
         do {
-            $feed = $twitterService->getFeed($input->getArgument('user'), $maxId);
+            $idsToLoad = $input->getOption('id');
+            $feed = $idsToLoad
+                ? $twitterService->getFeedByIds($idsToLoad)
+                : $twitterService->getFeed($input->getArgument('user'), $maxId);
+
             if (!$feed) {
                 break;
             }
@@ -78,6 +89,10 @@ class DownloadCommand extends Command
 
             $feed = $twitterService->filterFeed($feed, $input->getOption('keyword'));
             $downloadManager->download($feed, $input->getOption('media-type'));
+
+            if ($idsToLoad) {
+                break;
+            }
         } while (true);
 
         return self::SUCCESS;

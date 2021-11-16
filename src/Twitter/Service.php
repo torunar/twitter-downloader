@@ -4,7 +4,6 @@ namespace Torunar\TwitterDownloader\Twitter;
 
 use Abraham\TwitterOAuth\TwitterOAuth;
 use DateTimeImmutable;
-use GuzzleHttp\Pool;
 use stdClass;
 
 class Service
@@ -37,43 +36,37 @@ class Service
         }
 
         return array_map(
-            function (stdClass $tweetData): Tweet {
-                $videos = $this->getVideos($tweetData);
-                $photos = $this->getPhotos($tweetData);
-                if (isset($tweetData->retweeted_status)) {
-                    $videos = array_unique([...$videos, ...$this->getVideos($tweetData->retweeted_status)]);
-                    $photos = array_unique([...$photos, ...$this->getPhotos($tweetData->retweeted_status)]);
-                }
-
-                // same amount of photos and videos === video + preview image
-                for ($i = 0; $i < count($videos); $i++) {
-                    unset($photos[$i]);
-                }
-
-                return new Tweet(
-                    $tweetData->id_str,
-                    new DateTimeImmutable($tweetData->created_at),
-                    $tweetData->full_text,
-                    $photos,
-                    $videos
-                );
-            },
+            [$this, 'getTweetFromData'],
             $this->client->get('statuses/user_timeline', $params)
         );
     }
 
-    public function filterFeed(array $feed, array $keywords)
+    public function getFeedByIds(array $ids): array
+    {
+        return array_map(function ($id) {
+            $params = [
+                'id' => $id,
+                'tweet_mode' => 'extended',
+                'trim_user' => true,
+            ];
+            $tweetData = $this->client->get('statuses/show', $params);
+
+            return $this->getTweetFromData($tweetData);
+        }, $ids);
+    }
+
+    public function filterFeed(array $feed, array $keywords): array
     {
         if (!$keywords) {
             return $feed;
         }
 
         return array_filter($feed, function (Tweet $tweet) use ($keywords) {
-            return $this->isMatchingTweet($tweet, $keywords);
+            return $this->hasKeywords($tweet, $keywords);
         });
     }
 
-    private function isMatchingTweet(Tweet $tweet, array $keywords)
+    private function hasKeywords(Tweet $tweet, array $keywords): bool
     {
         foreach ($keywords as $keyword) {
             if (preg_match('~\b' . preg_quote($keyword) . '\b~ui', $tweet->text)) {
@@ -84,7 +77,7 @@ class Service
         return false;
     }
 
-    private function getBestQualityVideoSource(stdClass $mediaEntity)
+    private function getBestQualityVideoSource(stdClass $mediaEntity): string
     {
         $bitrateToSourceMap = [];
         foreach ($mediaEntity->video_info->variants as $variant) {
@@ -123,7 +116,7 @@ class Service
         return $videos;
     }
 
-    private function getPhotos(stdClass $tweetData)
+    private function getPhotos(stdClass $tweetData): array
     {
         if (!isset($tweetData->extended_entities->media)) {
             return [];
@@ -139,5 +132,28 @@ class Service
         }
 
         return $photos;
+    }
+
+    private function getTweetFromData(stdClass $tweetData): Tweet
+    {
+        $videos = $this->getVideos($tweetData);
+        $photos = $this->getPhotos($tweetData);
+        if (isset($tweetData->retweeted_status)) {
+            $videos = array_unique([...$videos, ...$this->getVideos($tweetData->retweeted_status)]);
+            $photos = array_unique([...$photos, ...$this->getPhotos($tweetData->retweeted_status)]);
+        }
+
+        // same amount of photos and videos === video + preview image
+        for ($i = 0; $i < count($videos); $i++) {
+            unset($photos[$i]);
+        }
+
+        return new Tweet(
+            $tweetData->id_str,
+            new DateTimeImmutable($tweetData->created_at),
+            $tweetData->full_text,
+            $photos,
+            $videos
+        );
     }
 }
